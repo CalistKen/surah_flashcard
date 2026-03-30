@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard Hafalan Ayat Al-Qur'an</title>
+    <style>
+        /* --- CSS STYLING --- */
+        :root {
+            --primary-color: #1a5276; /* Biru Islami yang tenang */
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-light: #ffffff;
+            --accent-color: #f1c40f; /* Kuning emas untuk penekanan */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .progress {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            background-color: #d6eaf8;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin: 15px 0;
+            display: inline-block;
+        }
+
+        /* 3D Flashcard Effect */
+        .scene {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card__face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        /* Sisi Depan: Teks Arab */
+        .card__face--front {
+            background-color: var(--card-bg);
+            border: 3px solid var(--primary-color);
+        }
+
+        .arabic {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            direction: rtl;
+            font-family: 'Traditional Arabic', 'Amiri', serif;
+            font-weight: bold;
+        }
+
+        .latin {
+            font-size: 1rem;
+            color: #555;
+            font-style: italic;
+        }
+
+        /* Sisi Belakang: Arti */
+        .card__face--back {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            transform: rotateY(180deg);
+        }
+
+        .translation {
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .source {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Navigasi */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.2s;
+        }
+
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+
+        .btn-shuffle { background-color: #27ae60; }
+
+        @media (max-width: 480px) {
+            .arabic { font-size: 1.8rem; }
+            .scene { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Flashcard Potongan Ayat</h1>
+        <div class="progress" id="progress-text">1 / 10</div>
+    </div>
+
+    <div class="scene">
+        <div class="card" id="flashcard">
+            <!-- Depan: Arab + Latin -->
+            <div class="card__face card__face--front">
+                <div class="arabic" id="front-arabic">أَلَمْ يَأْتِكُمْ</div>
+                <div class="latin" id="front-latin">(Alam ya'tikum)</div>
+            </div>
+            <!-- Belakang: Arti + Info -->
+            <div class="card__face card__face--back">
+                <div class="translation" id="back-translation">Belumkah sampai kepadamu</div>
+                <div class="source" id="back-info">QS Ibrahim: 9</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-prev">Kembali</button>
+        <button id="btn-shuffle" class="btn-shuffle">Acak</button>
+        <button id="btn-next">Lanjut</button>
+    </div>
+
+    <script>
+        // Data Potongan Ayat
+        const ayatData = [
+            { front: "أَلَمْ يَأْتِكُمْ (Alam ya'tikum)", back: "Belumkah sampai kepadamu", info: "QS Ibrahim: 9" },
+            { front: "نَبَأُ الَّذِينَ (Naba'ul-lażīna)", back: "Berita orang-orang yang", info: "QS Ibrahim: 9" },
+            { front: "وَلَنَبْلُوَنَّكُم (Wa lanabluwannakum)", back: "Dan sungguh Kami akan mengujimu", info: "QS Al-Baqarah: 155" },
+            { front: "بِشَيْءٍ مِّنَ الْخَوْفِ (Bisyai'im minal-khaufi)", back: "Dengan sedikit ketakutan", info: "QS Al-Baqarah: 155" },
+            { front: "وَمِنْهُم مَّن يُؤْمِنُ (Wa min-hum may yu'minu)", back: "Dan di antara mereka ada yang beriman", info: "QS Yunus: 40" },
+            { front: "مَن قَتَلَ نَفْسًا (Man qatala nafsan)", back: "Barangsiapa membunuh seseorang", info: "QS Al-Maidah: 32" },
+            { front: "فِي الْأَرْضِ (Fil-arḍi)", back: "Di (muka) bumi", info: "QS Al-Maidah: 32" },
+            { front: "إِنَّ الْمُسْلِمِينَ (Innal-muslimīna)", back: "Sesungguhnya laki-laki Muslim", info: "QS Al-Ahzab: 35" },
+            { front: "وَالْمُسْلِمَاتِ (Wal-muslimāti)", back: "Dan perempuan Muslim", info: "QS Al-Ahzab: 35" },
+            { front: "فَاجْلِدُوا (Fajlidū)", back: "Maka deralah/pukullah", info: "QS An-Nur: 2" },
+                // QS Al-Baqarah: 155
+            {
+              front: "وَلَنَبْلُوَنَّكُم (Wa lanabluwannakum)",
+              back: "Dan sungguh Kami akan mengujimu",
+              info: "QS Al-Baqarah: 155"
+            },
+            {
+              front: "بِشَيْءٍ مِّنَ الْخَوْفِ (Bisyai'im minal-khaufi)",
+              back: "Dengan sedikit ketakutan",
+              info: "QS Al-Baqarah: 155"
+            },
+            {
+              front: "وَالْجُوعِ (Wal-jū'i)",
+              back: "Dan kelaparan",
+              info: "QS Al-Baqarah: 155"
+            },
+            // QS Yunus: 40
+            {
+              front: "وَمِنْهُم مَّن يُؤْمِنُ (Wa min-hum may yu'minu)",
+              back: "Dan di antara mereka ada yang beriman",
+              info: "QS Yunus: 40"
+            },
+            {
+              front: "بِهٖ (Bihī)",
+              back: "Kepadanya (Al-Qur'an/Nabi)",
+              info: "QS Yunus: 40"
+            },
+            // QS Al-Maidah: 32
+            {
+              front: "مَن قَتَلَ نَفْسًا (Man qatala nafsan)",
+              back: "Barangsiapa membunuh seseorang",
+              info: "QS Al-Maidah: 32"
+            },
+            {
+              front: "فِي الْأَرْضِ (Fil-arḍi)",
+              back: "Di (muka) bumi",
+              info: "QS Al-Maidah: 32"
+            },
+            {
+              front: "جَمِيعًا (Jamī'ā)",
+              back: "Seluruhnya / Semuanya",
+              info: "QS Al-Maidah: 32"
+            },
+            // QS Al-Ahzab: 35
+            {
+              front: "إِنَّ الْمُسْلِمِينَ (Innal-muslimīna)",
+              back: "Sesungguhnya laki-laki Muslim",
+              info: "QS Al-Ahzab: 35"
+            },
+            {
+              front: "وَالْمُسْلِمَاتِ (Wal-muslimāti)",
+              back: "Dan perempuan Muslim",
+              info: "QS Al-Ahzab: 35"
+            },
+            {
+              front: "وَالْمُؤْمِنِينَ (Wal-mu'minīna)",
+              back: "Dan laki-laki Mukmin",
+              info: "QS Al-Ahzab: 35"
+            },
+            // QS An-Nur: 2
+            {
+              front: "الزَّانِيَةُ وَالزَّانِي (Az-zāniyatu waz-zānī)",
+              back: "Perempuan dan laki-laki yang berzina",
+              info: "QS An-Nur: 2"
+            },
+            {
+              front: "فَاجْلِدُوا (Fajlidū)",
+              back: "Maka deralah (pukullah)",
+              info: "QS An-Nur: 2"
+            },
+            {
+              front: "مِائَةَ جَلْدَةٍ (Mi'ata jaldah)",
+              back: "Seratus kali deraan",
+              info: "QS An-Nur: 2"
+            }
+          ];
+        
+
+        let cards = [...ayatData];
+        let currentIndex = 0;
+
+        const cardElement = document.getElementById('flashcard');
+        const arabicEl = document.getElementById('front-arabic');
+        const latinEl = document.getElementById('front-latin');
+        const transEl = document.getElementById('back-translation');
+        const infoEl = document.getElementById('back-info');
+        const progressEl = document.getElementById('progress-text');
+
+        function updateDisplay() {
+            cardElement.classList.remove('is-flipped');
+            
+            setTimeout(() => {
+                const item = cards[currentIndex];
+                // Memisahkan teks Arab dan Latin di front string menggunakan regex atau split sederhana
+                const splitIndex = item.front.indexOf('(');
+                arabicEl.textContent = item.front.substring(0, splitIndex).trim();
+                latinEl.textContent = item.front.substring(splitIndex).trim();
+                
+                transEl.textContent = item.back;
+                infoEl.textContent = item.info;
+                progressEl.textContent = `${currentIndex + 1} / ${cards.length}`;
+            }, 200);
+        }
+
+        cardElement.addEventListener('click', () => cardElement.classList.toggle('is-flipped'));
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            currentIndex = (currentIndex + 1) % cards.length;
+            updateDisplay();
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+            updateDisplay();
+        });
+
+        document.getElementById('btn-shuffle').addEventListener('click', () => {
+            cards.sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            updateDisplay();
+        });
+
+        // Inisialisasi
+        updateDisplay();
+    </script>
+</body>
+</html>
